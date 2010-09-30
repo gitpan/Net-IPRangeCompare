@@ -95,7 +95,7 @@ Net::IPRangeCompare - Perl module IP Range Comparison
 
 Fast Scalable ip range aggregation and summary tool kit.
 
-Although similar in functionality to Net::Netmask and NetAddr::IP, Net::IPRangeCompare is a completely range driven ip management and evaluation tool, allowing more flexibility and scalability when dealing with the some what organic nature of IP-Ranges.
+Although similar in functionality to Net::Netmask and NetAddr::IP, Net::IPRangeCompare is a completely range driven ip management and evaluation tool, allowing more flexibility and scalability when dealing with the somewhat organic nature of IP-Ranges.
 
 If you have a large number of ipv4 ranges and need to inventory lists of ranges for overlaps, this is the Module for you!
 
@@ -157,7 +157,7 @@ use overload
         '""' => \&notation
 	,'fallback' => 1;
 
-$VERSION=.003;
+$VERSION=.004;
 use constant key_start_ip =>0;
 use constant key_end_ip =>1;
 use constant key_generated=>2;
@@ -189,7 +189,7 @@ Creates a new Net::IPRangeCompare object.
 		10.0.0.0 - 10.0.0.0
 	Notes:
 		When using a list syntax: start and end range are
-		assumed.  Using a 2 arguments will not work as 
+		assumed.  Using 2 arguments will not work as 
 		expected when the list consists of ip and cidr.
 	Example:
 		$obj=$package_name->parse_new_range('10.0.0.0',32);
@@ -202,7 +202,7 @@ Creates a new Net::IPRangeCompare object.
 		Returns: 10.0.0.0 - 32.0.0.0
 
 		If you wish to create an object from cidr boundaries
-		Pass the argument as a single string.
+		pass the argument as a single string.
 	Example:
 		$obj=$package_name->parse_new_range(
 			'10.0.0.0'.'/'.32
@@ -313,8 +313,7 @@ sub last_ip () { int_to_ip($_[0]->[key_end_ip]) }
 
 =item * if($obj->missing) { .. do something } else { .. do something else }
 
-If the value is true, this range is a filler representing an ip range that
-was not found.
+If the value is true, this range is a filler representing an ip range that was not found.
 
 =cut
 
@@ -688,7 +687,7 @@ sub get_overlapping_range ($) {
 
 =item * my $hostmask=hostmask($netmask);
 
-Given a netmask( as an integer) returns the corrisponding hostmask
+Given a netmask (as an integer) returns the corresponding hostmask.
 
 =cut
 
@@ -883,7 +882,7 @@ sub new_from_cidr ($) {
 
 =head2 Net::IPRangeCompare list processing functions
 
-This section covers how to use the List and list of list processing functions that do the actual comparison work.
+This section covers how to use the list and list of lists processing functions that do the actual comparison work.
 
 =over 4
 
@@ -1341,7 +1340,7 @@ sub get_ranges_by_key ($) {
 =item * $obj->compare_ranges;
 =item * $obj->compare_ranges(key,key,key);
 
-Used to initialize or re-initialize the compare process. When called a key or a list of keys: The compare process excludes those columns.
+Used to initialize or re-initialize the compare process. When called with a key or a list of keys: The compare process excludes those columns.
 
 Example:
 
