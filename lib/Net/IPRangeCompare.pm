@@ -95,7 +95,7 @@ Net::IPRangeCompare - Perl module IP Range Comparison
 
 Fast Scalable ip range aggregation and summary tool kit.
 
-Although similar in functionality to Net::Netmask and NetAddr::IP, Net::IPRangeCompare is a completely range driven ip management and evaluation tool, allowing more flexabilty and scalability when dealing with the some what organic nature of IP-Ranges.
+Although similar in functionality to Net::Netmask and NetAddr::IP, Net::IPRangeCompare is a completely range driven ip management and evaluation tool, allowing more flexibility and scalability when dealing with the some what organic nature of IP-Ranges.
 
 If you have a large number of ipv4 ranges and need to inventory lists of ranges for overlaps, this is the Module for you!
 
@@ -157,7 +157,7 @@ use overload
         '""' => \&notation
 	,'fallback' => 1;
 
-$VERSION=.001;
+$VERSION=.002;
 use constant key_start_ip =>0;
 use constant key_end_ip =>1;
 use constant key_generated=>2;
