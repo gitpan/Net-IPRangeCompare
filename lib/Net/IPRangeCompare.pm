@@ -157,7 +157,7 @@ use overload
         '""' => \&notation
 	,'fallback' => 1;
 
-$VERSION=.002;
+$VERSION=.003;
 use constant key_start_ip =>0;
 use constant key_end_ip =>1;
 use constant key_generated=>2;
@@ -588,7 +588,7 @@ sub get_first_cidr () {
 =item * my $sub=$obj->enumerate(1-32);
 =item * my $sub=$obj->enumerate;
 
-Returns an anonymous subrouteen that can be used to iterate through the entire range.  The iterator can be used to safely walk any range even 0/0.  Each iteration of $sub returns a new Net::IPRangeCompare object or undef on completion.
+Returns an anonymous subroutine that can be used to iterate through the entire range.  The iterator can be used to safely walk any range even 0/0.  Each iteration of $sub returns a new Net::IPRangeCompare object or undef on completion.
 
 The default cidr to iterate by is "32".
 
