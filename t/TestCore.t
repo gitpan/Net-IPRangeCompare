@@ -3,20 +3,7 @@ use strict;
 use warnings;
 use Test::More tests =>107;
 use Data::Dumper;
-use Net::IPRangeCompare qw(fill_missing_ranges 
-	int_to_ip
-	cidr_to_int
-	get_common_range
-	sort_largest_first_int_first
-	sort_smallest_last_int_first
-	range_start_end_fill
-	range_compare
-	consolidate_ranges 
-	get_overlapping_range 
-	sort_ranges 
-	sort_largest_last_int_first 
-	sort_smallest_first_int_first
-	);
+use Net::IPRangeCompare qw(:ALL);
 our $package_name='Net::IPRangeCompare';
 
 # Constructor tests

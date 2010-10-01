@@ -93,11 +93,11 @@ Net::IPRangeCompare - Perl module IP Range Comparison
 
 =head1 DESCRIPTION
 
-Fast Scalable ip range aggregation and summary tool kit.
+Fast Scalable ip range aggregation and summary tool kit.  Find intersections across multiple lists of IP ranges, fast. 
 
-Although similar in functionality to Net::Netmask and NetAddr::IP, Net::IPRangeCompare is a completely range driven ip management and evaluation tool, allowing more flexibility and scalability when dealing with the somewhat organic nature of IP-Ranges.
+Although similar in functionality to Net::CIDR::Compare, Net::Netmask and NetAddr::IP, Net::IPRangeCompare is a completely range driven ip management and evaluation tool, allowing more flexibility and scalability when dealing with the somewhat organic nature of IP-Ranges.
 
-If you have a large number of ipv4 ranges and need to inventory lists of ranges for overlaps, this is the Module for you!
+If you have a large number of ipv4 ranges and need to inventory lists of ranges for intersections, this is the Module for you!
 
 =cut
 
@@ -105,60 +105,121 @@ If you have a large number of ipv4 ranges and need to inventory lists of ranges 
 #use strict; # Commented out for release
 #use warnings; # commented out for release
 use Scalar::Util qw(blessed);
-use vars qw($package_name $error $VERSION @ISA @EXPORT_OK);
+use vars qw($package_name $error $VERSION @ISA @EXPORT_OK %EXPORT_TAGS);
 require Exporter;
 @ISA=qw(Exporter);
 
 @EXPORT_OK=qw(
 	hostmask
 	cidr_to_int
-	get_common_range
-	sort_largest_first_int_first
-	sort_smallest_last_int_first
-	range_start_end_fill
-	sort_ranges 
-	sort_largest_last_int_first 
-	sort_smallest_first_int_first
-	get_overlapping_range
-	consolidate_ranges
-	fill_missing_ranges
 	ip_to_int
 	int_to_ip
+
+	sort_ranges 
+	sort_largest_first_int_first
+	sort_smallest_last_int_first
+	sort_largest_last_int_first 
+	sort_smallest_first_int_first
+
+	get_overlapping_range
+	get_common_range
+
+	consolidate_ranges
+	range_start_end_fill
+	fill_missing_ranges
 	range_compare
 	);
 
+%EXPORT_TAGS = (
+	ALL=>\@EXPORT_OK
+	,HELPER=>[qw(
+		hostmask
+		cidr_to_int
+		ip_to_int
+		int_to_ip
+	)]
+	,SORT=>[qw(
+		sort_ranges 
+		sort_largest_first_int_first
+		sort_smallest_last_int_first
+		sort_largest_last_int_first 
+		sort_smallest_first_int_first
+	)]
+	,OVERLAP=>[qw(
+		get_overlapping_range
+		get_common_range
+	)]
+	,PROCESS=>[qw(
+		consolidate_ranges
+		range_start_end_fill
+		fill_missing_ranges
+		range_compare
+	)]
+);
+
 =head2 Export list
 
-The following functions are optionally exported by Net::IPRangeCompare.
+Net::IPRangeCompare does not export anything by default.  The functions listed in this section can be imported by using the standard import syntax.
 
-	hostmask
-        ip_to_int
-        int_to_ip
-        cidr_to_int
+Import example:
 
-        get_common_range
-        get_overlapping_range
+	use Net::IPRangeCompare qw(consolidate_ranges sort_ranges);
 
-        sort_ranges
-        sort_largest_first_int_first
-        sort_smallest_last_int_first
-        sort_largest_last_int_first
-        sort_smallest_first_int_first
+To import all functions:
 
-        consolidate_ranges
-        fill_missing_ranges
-        range_start_end_fill
-        range_compare
+	use Net::IPRangeCompare qw(:ALL);
+
+Helper functions  :HELPER
+
+	use Net::IPRangeCompare qw(:HELPER);
+
+	Imports the following:
+
+		hostmask
+	        ip_to_int
+        	int_to_ip
+        	cidr_to_int
+
+Overlap functions :OVERLAP
+
+	use Net::IPRangeCompare qw(:OVERLAP);
+
+	Imports the following:
+
+        	get_common_range
+        	get_overlapping_range
+
+Sort Functions :SORT
+
+	use Net::IPRangeCompare qw(:SORT);
+
+	Imports the following:
+
+        	sort_ranges
+        	sort_largest_first_int_first
+        	sort_smallest_last_int_first
+        	sort_largest_last_int_first
+        	sort_smallest_first_int_first
+
+Range processing functions :PROCESS
+
+	use Net::IPRangeCompare qw(:PROCESS);
+
+	Imports the following:
+
+        	consolidate_ranges
+        	fill_missing_ranges
+        	range_start_end_fill
+        	range_compare
 
 =cut
-
 
 use Scalar::Util qw(looks_like_number);
 use overload
         '""' => \&notation
 	,'fallback' => 1;
 
-$VERSION=.006;
+$VERSION=.007;
 use constant key_start_ip =>0;
 use constant key_end_ip =>1;
 use constant key_generated=>2;
@@ -596,14 +657,23 @@ The default cidr to iterate by is "32".
 Example:
 
 	my $obj=Net::IPRangeCompare->parse_new_range('10/30');
+	my $sub=$obj->enumerate;
 	while(my $range=$sub->()) {
 		print $range,"\n"
 	}
 	Output:
-	10.0.0.0
-	10.0.0.1
-	10.0.0.2
-	10.0.0.3
+	10.0.0.0 - 10.0.0.0
+	10.0.0.1 - 10.0.0.1
+	10.0.0.2 - 10.0.0.2
+	10.0.0.3 - 10.0.0.3
+
+	$sub=$obj->enumerate(31);
+	while(my $range=$sub->()) {
+		print $range,"\n"
+	}
+	Output:
+	10.0.0.0 - 10.0.0.1
+	10.0.0.2 - 10.0.0.3
 
 =cut
 
@@ -1319,7 +1389,7 @@ sub add_range ($$) {
 ############################################
 #
 
-=item * $obj->get_ranges_by_key(key);
+=item * my $list_ref=$obj->get_ranges_by_key(key);
 
 Given a key, return the list reference.  Returns undef if the key does not exist. Carp::croak is called if the key is undef.
 
@@ -1329,7 +1399,7 @@ sub get_ranges_by_key ($) {
 	my ($s,$key)=@_;
 	croak "key was not defined" unless defined($key);
 
-	return $s->[key_sources]->{$key}
+	return [@{$s->[key_sources]->{$key}}]
 		if exists $s->[key_sources]->{$key};
 	
 	return undef;
@@ -1349,8 +1419,8 @@ Example:
 
 	$obj->compare_ranges(qw(Bob Sally));
 
-	The resulting %row from $obj->get_row would only contain keys for
-	Tom and Harry.
+	The resulting %row from $obj->get_row would only contain keys 
+	for Tom and Harry.
 
 Notes:
 	If %row would be empty during $obj->get_row function call will 
@@ -1458,7 +1528,7 @@ modify it under the same terms as Perl itself.
 
 =head1 SEE ALSO
 
-Net::Netmask, NetAddr::IP, Carp
+Net::Netmask NetAddr::IP Carp Net::CIDR::Compare
 
 =cut
 
