@@ -149,6 +149,7 @@ The following functions are optionally exported by Net::IPRangeCompare.
         fill_missing_ranges
         range_start_end_fill
         range_compare
+
 =cut
 
 
@@ -157,7 +158,7 @@ use overload
         '""' => \&notation
 	,'fallback' => 1;
 
-$VERSION=.005;
+$VERSION=.006;
 use constant key_start_ip =>0;
 use constant key_end_ip =>1;
 use constant key_generated=>2;
