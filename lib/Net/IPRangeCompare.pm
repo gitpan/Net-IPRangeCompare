@@ -6,7 +6,7 @@ use warnings;
 use Scalar::Util qw(blessed);
 use Carp qw(croak);
 use vars qw($error $VERSION @ISA @EXPORT_OK %EXPORT_TAGS);
-$VERSION=.008;
+$VERSION=.009;
 use Scalar::Util qw(looks_like_number);
 use overload
         '""' => \&notation
@@ -1343,9 +1343,6 @@ Helper Class that wraps the features of Net::IPRangeCompare into a single easy t
 use strict;
 use warnings;
 use Carp qw(croak);
-use vars qw(@ISA);
-@ISA=qw(Net::IPRangeCompare);
-
 use constant key_sources=>0;
 use constant key_columns=>1;
 use constant key_compare=>2;

@@ -1,14 +1,18 @@
 
 RCS file: /home/cvs/perl/NetIpRangeCompare/CPAN_RELEASE/Net-IPRangeCompare/Changes,v
 Working file: Changes
-head: 1.12
+head: 1.13
 branch:
 locks: strict
 access list:
 symbolic names:
 keyword substitution: kv
-total revisions: 12;	selected revisions: 12
+total revisions: 13;	selected revisions: 13
 description:
+----------------------------
+revision 1.13
+date: 2010-10-02 02:44:13 +0000;  author: wicket;  state: Exp;  lines: +31 -6
+rolling in the change log
 ----------------------------
 revision 1.12
 date: 2010-10-02 00:20:17 +0000;  author: wicket;  state: Exp;  lines: +12 -4
@@ -161,14 +165,22 @@ rolling in files
 
 RCS file: /home/cvs/perl/NetIpRangeCompare/CPAN_RELEASE/Net-IPRangeCompare/lib/Net/IPRangeCompare.pm,v
 Working file: lib/Net/IPRangeCompare.pm
-head: 1.14
+head: 1.16
 branch:
 locks: strict
 access list:
 symbolic names:
 keyword substitution: kv
-total revisions: 14;	selected revisions: 14
+total revisions: 16;	selected revisions: 16
 description:
+----------------------------
+revision 1.16
+date: 2010-10-02 03:07:41 +0000;  author: wicket;  state: Exp;  lines: +1 -1
+forgot to update the file rev
+----------------------------
+revision 1.15
+date: 2010-10-02 03:07:08 +0000;  author: wicket;  state: Exp;  lines: +0 -3
+Removed unused variables
 ----------------------------
 revision 1.14
 date: 2010-10-02 02:42:09 +0000;  author: wicket;  state: Exp;  lines: +61 -44
