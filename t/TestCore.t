@@ -1,7 +1,7 @@
 
 use strict;
 use warnings;
-use Test::More tests =>115;
+use Test::More tests =>118;
 use Data::Dumper;
 use Net::IPRangeCompare qw(:ALL);
 our $package_name='Net::IPRangeCompare';
@@ -438,7 +438,11 @@ our $package_name='Net::IPRangeCompare';
 {
 	my $ok=0;
 	eval {
-		my $obj=$package_name->new(0,4);
+		
+		my $obj=$package_name->new(0,3);
+		my ($range,$cidr,$next)=$obj->get_first_cidr;
+		ok(!defined($next),'should not have next when we have a cidr');
+		$obj=$package_name->new(0,4);
 		my @set=$obj->get_first_cidr;
 		my $row=join(', ',@set);
 		ok($row eq 
@@ -455,6 +459,14 @@ our $package_name='Net::IPRangeCompare';
 	SKIP: {
 		skip 'eval failed',(2 -$ok) unless !$@;
 	}
+}
+
+## is_cidr and is_range checks
+{
+	my $obj=$package_name->new(0,4);
+	#print join(', ',$obj->get_first_cidr),"\n";
+	ok(!$obj->is_cidr,'is_cidr false check');
+	ok($obj->is_range,'is_range true check');
 }
 
 ## Get cidr notation lis ref;
