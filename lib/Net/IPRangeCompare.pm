@@ -1,6 +1,24 @@
 
 package Net::IPRangeCompare;
 
+use strict;
+use warnings;
+use Scalar::Util qw(blessed);
+use Carp qw(croak);
+use vars qw($error $VERSION @ISA @EXPORT_OK %EXPORT_TAGS);
+$VERSION=.008;
+use Scalar::Util qw(looks_like_number);
+use overload
+        '""' => \&notation
+	,'fallback' => 1;
+
+use constant key_start_ip =>0;
+use constant key_end_ip =>1;
+use constant key_generated=>2;
+use constant key_missing=>3;
+use constant key_data=>4;
+use constant ALL_BITS=>0xffffffff;
+
 =head1 Net::IPRangeCompare
 
 Net::IPRangeCompare - Perl module IP Range Comparison
@@ -102,10 +120,6 @@ If you have a large number of ipv4 ranges and need to inventory lists of ranges 
 =cut
 
 
-#use strict; # Commented out for release
-#use warnings; # commented out for release
-use Scalar::Util qw(blessed);
-use vars qw($package_name $error $VERSION @ISA @EXPORT_OK %EXPORT_TAGS);
 require Exporter;
 @ISA=qw(Exporter);
 
@@ -214,21 +228,6 @@ Range processing functions :PROCESS
 
 =cut
 
-use Scalar::Util qw(looks_like_number);
-use overload
-        '""' => \&notation
-	,'fallback' => 1;
-
-$VERSION=.007;
-use constant key_start_ip =>0;
-use constant key_end_ip =>1;
-use constant key_generated=>2;
-use constant key_missing=>3;
-use constant key_data=>4;
-use constant ALL_BITS=>0xffffffff;
-
-$package_name=sub { (caller())[0] }->();
-
 
 =head2 OO Methods
 
@@ -241,11 +240,11 @@ This section defines the OO interfaces.
 Creates a new Net::IPRangeCompare object.
 
 	Examples:
-	$obj=$package_name->parse_new_range('10');
-	$obj=$package_name->parse_new_range('10.0.0.0 - 10.0.0.0');
-	$obj=$package_name->parse_new_range('10/32');
-	$obj=$package_name->parse_new_range('10/255.255.255');
-	$obj=$package_name->parse_new_range('10.0.0.0','10.0.0.0');
+	$obj=Net::IPRangeCompare->parse_new_range('10');
+	$obj=Net::IPRangeCompare->parse_new_range('10.0.0.0 - 10.0.0.0');
+	$obj=Net::IPRangeCompare->parse_new_range('10/32');
+	$obj=Net::IPRangeCompare->parse_new_range('10/255.255.255');
+	$obj=Net::IPRangeCompare->parse_new_range('10.0.0.0','10.0.0.0');
 
 	All of the above will parse the same range: 
 		10.0.0.0 - 10.0.0.0
@@ -254,10 +253,10 @@ Creates a new Net::IPRangeCompare object.
 		assumed.  Using 2 arguments will not work as 
 		expected when the list consists of ip and cidr.
 	Example:
-		$obj=$package_name->parse_new_range('10.0.0.0',32);
+		$obj=Net::IPRangeCompare->parse_new_range('10.0.0.0',32);
 		Returns: 10.0.0.0 - 32.0.0.0
 
-		$obj=$package_name->parse_new_range(
+		$obj=Net::IPRangeCompare->parse_new_range(
 			'10.0.0.0'
 			,'255.255.255.255
 		);
@@ -266,12 +265,12 @@ Creates a new Net::IPRangeCompare object.
 		If you wish to create an object from cidr boundaries
 		pass the argument as a single string.
 	Example:
-		$obj=$package_name->parse_new_range(
+		$obj=Net::IPRangeCompare->parse_new_range(
 			'10.0.0.0'.'/'.32
 		);
 		Returns: 10.0.0.0 - 10.0.0.0
 	Example: 
-		$obj=$package_name->parse_new_range(
+		$obj=Net::IPRangeCompare->parse_new_range(
 			'10.0.0.0'
 			.'/'
 			.'255.255.255.255
@@ -295,7 +294,7 @@ sub parse_new_range {
 		# may be an existing oo object
 		my $class=blessed($source);
 		if($class) {
-			return $source if $class eq $package_name;
+			return $source if $class eq (caller)[0];
 			$source=join '',$source;
 		} else {
 			$error="reference passed for parsing";
@@ -515,7 +514,8 @@ Returns true if the 2 ranges overlap.  Strings are auto converted to Net::IPRang
 
 sub overlap ($) {
 	my ($range_a,$range_b)=@_;
-	$range_b=$package_name->parse_new_range($range_b);
+	my $class=blessed $range_a;
+	$range_b=$class->parse_new_range($range_b);
 
 	# return true if range_b's start range is contained by range_a
 	return 1 if 
@@ -599,6 +599,7 @@ Iterator function:
 
 sub get_first_cidr () {
 	my ($s)=@_;
+	my $class=blessed $s;
 	my $first_cidr;
 	my $output_cidr;
 	for(my $cidr=32;$cidr>-1;--$cidr) {
@@ -615,7 +616,7 @@ sub get_first_cidr () {
 		next if $last_int>$s->last_int;
 
 		$output_cidr=32 - $cidr;
-		$first_cidr=$package_name->new(
+		$first_cidr=$class->new(
 			$s->first_int
 			,$last_int
 		);
@@ -634,7 +635,7 @@ sub get_first_cidr () {
 		return ( 
 			$first_cidr 
 			,$cidr_string
-			,$package_name->new(
+			,$class->new(
 				$first_cidr->next_first_int
 				,$s->last_int
 			)
@@ -683,6 +684,7 @@ sub enumerate {
 	my $mask=cidr_to_int($cidr);
 	my $hostmask=hostmask($mask);
 	my $n=$s;
+	my $class=blessed $s;
 	sub {
 		return undef unless $n;
 		my $cidr_end=($n->first_int & $mask) + $hostmask;
@@ -691,11 +693,11 @@ sub enumerate {
 			$return_ref=$n;
 			$n=undef;
 		} else {
-			$return_ref=$package_name->new(
+			$return_ref=$class->new(
 				$n->first_int
 				,$cidr_end
 			);
-			$n=$package_name->new(
+			$n=$class->new(
 				$return_ref->next_first_int
 				,$n->last_int
 			);
@@ -746,9 +748,11 @@ Given a list reference of Net::IPRangeCompare objects: returns a range that will
 
 sub get_overlapping_range ($) {
 	my ($ranges)=@_;
+	croak 'list ref is empty' unless $#{$ranges}!=-1;
 	my ($first_int)=sort sort_smallest_first_int_first @$ranges;
 	my ($last_int)=sort sort_largest_last_int_first @$ranges;
-	my $obj=$package_name->new($first_int->first_int,$last_int->last_int);
+	my $class=blessed($ranges->[0]);
+	my $obj=$class->new($first_int->first_int,$last_int->last_int);
 	$obj->[key_generated]=1;
 	$obj;
 }
@@ -763,8 +767,7 @@ Given a netmask (as an integer) returns the corresponding hostmask.
 =cut
 
 sub hostmask ($) {
-	my ($mask)=@_;
-	(~(ALL_BITS & $mask))
+	ALL_BITS & (~(ALL_BITS & $_[0]))
 }
 
 ###########################################
@@ -796,9 +799,12 @@ objects:  Returns undef if no overlapping range is found.
 
 sub get_common_range ($) {
 	my ($ranges)=@_;
+	croak 'empty range refrence' if $#$ranges==-1;
 	my ($first_int)=sort sort_largest_first_int_first @$ranges;
 	my ($last_int)=sort sort_smallest_last_int_first @$ranges;
-	$package_name->new(
+
+	my $class=blessed $ranges->[0];
+	$class->new(
 		$first_int->first_int
 		,$last_int->last_int
 	);
@@ -944,8 +950,6 @@ sub new_from_cidr ($) {
 
 
 	$s->new($first_int,$last_int);
-
-
 }
 
 ###########################################
@@ -1048,7 +1052,12 @@ Notes:
 sub fill_missing_ranges ($) {
 	my ($ranges)=@_;
 	
+	croak 'argument is not an array refrence' unless
+		ref($ranges) and ref($ranges) eq 'ARRAY';
+	croak 'empty list refrence' if $#$ranges==-1;
 	# first we have to consolidate the ranges
+	my $class=blessed $ranges->[0];
+
 	$ranges=consolidate_ranges($ranges);
 	my $return_ref=[];
 
@@ -1056,7 +1065,7 @@ sub fill_missing_ranges ($) {
 	while(my $next=shift @$ranges) {
 		push @$return_ref,$cmp;
 		unless($cmp->next_first_int==$next->first_int) {
-			my $missing=$package_name->new(
+			my $missing=$class->new(
 				$cmp->next_first_int
 				,$next->previous_last_int);
 			$missing->[key_missing]=1;
@@ -1113,6 +1122,12 @@ Notes:
 
 sub range_start_end_fill ($) {
 	my ($ranges)=@_;
+
+	croak 'argument is not an array refrence' unless
+		ref($ranges) and ref($ranges) eq 'ARRAY';
+	croak 'empty array refrence' if $#$ranges==-1;
+	my $class=blessed $ranges->[0]->[0];
+
 	my ($first_int)=sort sort_smallest_first_int_first
 		map { $_->[0] } @$ranges;
 	$first_int=$first_int->first_int;
@@ -1125,7 +1140,7 @@ sub range_start_end_fill ($) {
 		my $last_range=$ref->[$#{$ref}];
 
 		if($first_range->first_int!=$first_int) {
-			my $new_range=$package_name->new(
+			my $new_range=$class->new(
 					$first_int
 					,$first_range->previous_last_int
 			);
@@ -1135,7 +1150,7 @@ sub range_start_end_fill ($) {
 		}
 
 		if($last_range->last_int!=$last_int) {
-			my $new_range=$package_name->new(
+			my $new_range=$class->new(
 				$last_range->next_first_int
 				,$last_int
 			);
@@ -1327,7 +1342,9 @@ Helper Class that wraps the features of Net::IPRangeCompare into a single easy t
 
 use strict;
 use warnings;
-use Carp;
+use Carp qw(croak);
+use vars qw(@ISA);
+@ISA=qw(Net::IPRangeCompare);
 
 use constant key_sources=>0;
 use constant key_columns=>1;

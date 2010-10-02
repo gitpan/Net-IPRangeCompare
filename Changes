@@ -1,14 +1,18 @@
 
 RCS file: /home/cvs/perl/NetIpRangeCompare/CPAN_RELEASE/Net-IPRangeCompare/Changes,v
 Working file: Changes
-head: 1.11
+head: 1.12
 branch:
 locks: strict
 access list:
 symbolic names:
 keyword substitution: kv
-total revisions: 11;	selected revisions: 11
+total revisions: 12;	selected revisions: 12
 description:
+----------------------------
+revision 1.12
+date: 2010-10-02 00:20:17 +0000;  author: wicket;  state: Exp;  lines: +12 -4
+rolling in change log
 ----------------------------
 revision 1.11
 date: 2010-10-01 23:24:44 +0000;  author: wicket;  state: Exp;  lines: +218 -2
@@ -157,14 +161,29 @@ rolling in files
 
 RCS file: /home/cvs/perl/NetIpRangeCompare/CPAN_RELEASE/Net-IPRangeCompare/lib/Net/IPRangeCompare.pm,v
 Working file: lib/Net/IPRangeCompare.pm
-head: 1.13
+head: 1.14
 branch:
 locks: strict
 access list:
 symbolic names:
 keyword substitution: kv
-total revisions: 13;	selected revisions: 13
+total revisions: 14;	selected revisions: 14
 description:
+----------------------------
+revision 1.14
+date: 2010-10-02 02:42:09 +0000;  author: wicket;  state: Exp;  lines: +61 -44
+May have fixed the problem on the 64bit platforms..
+guessing that the hostmask functions doing the ~(mask & ALL_BITS)
+was returning a negetive number on some platforms.
+
+hostmask: ~(mask & ALL_BITS)
+changed to
+hostmask: ALL_BITS & (~(mask & ALL_BITS))
+
+Fixed another round of bad documentation
+$packagename has been removed and blessed is now being used every where.
+
+The package should now be subclassable.. I think
 ----------------------------
 revision 1.13
 date: 2010-10-01 23:24:18 +0000;  author: wicket;  state: Exp;  lines: +109 -39
@@ -237,14 +256,20 @@ rolling in files
 
 RCS file: /home/cvs/perl/NetIpRangeCompare/CPAN_RELEASE/Net-IPRangeCompare/t/TestCore.t,v
 Working file: t/TestCore.t
-head: 1.6
+head: 1.7
 branch:
 locks: strict
 access list:
 symbolic names:
 keyword substitution: kv
-total revisions: 6;	selected revisions: 6
+total revisions: 7;	selected revisions: 7
 description:
+----------------------------
+revision 1.7
+date: 2010-10-02 02:43:34 +0000;  author: wicket;  state: Exp;  lines: +119 -89
+The unit tests now happen in dependant order..
+That said, some unit tests were added, to help check some internal functions
+that may or may not be working correctly
 ----------------------------
 revision 1.6
 date: 2010-10-01 23:24:18 +0000;  author: wicket;  state: Exp;  lines: +1 -14

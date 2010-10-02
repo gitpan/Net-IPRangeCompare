@@ -1,12 +1,32 @@
 
 use strict;
 use warnings;
-use Test::More tests =>107;
+use Test::More tests =>115;
 use Data::Dumper;
 use Net::IPRangeCompare qw(:ALL);
 our $package_name='Net::IPRangeCompare';
 
-# Constructor tests
+## helper functions ( everything depends on these )
+{
+	
+	ok(int_to_ip(1) eq '0.0.0.1','int_to_ip check');
+
+	ok(ip_to_int('0.0.0.1')==1,'ip_to_int check');
+
+
+	ok(hostmask(0xff000000)==0x00ffffff,'host mask /8 check');
+	ok(hostmask(0xffffffff)==0x00000000,'host mask /32 check');
+	ok(hostmask(0)==0xffffffff,'host mask /0 check');
+
+	ok('255.0.0.0' eq int_to_ip(cidr_to_int(8))
+		,'cidr_to_int test /8 conversion');
+	ok('255.255.255.255' eq int_to_ip(cidr_to_int(32))
+		,'cidr_to_int test /32 conversion');
+	ok('0.0.0.0' eq int_to_ip(cidr_to_int(0))
+		,'cidr_to_int test /0 conversion');
+}
+
+# Constructor tests ( all oo stuff depends on this )
 {
 	# normal constructor use
 	my $obj=$package_name->new(0,0);
@@ -24,14 +44,7 @@ our $package_name='Net::IPRangeCompare';
 	ok(!defined($obj),"Start ip must be <= End ip");
 }
 
-
-## Size Checks
-{
-	my $obj=$package_name->new(0,1);
-	ok($obj->size==2,"0.0.0.1 - 0.0.0.2 is 2 ips");
-}
-
-## Notation CHecks
+## Notation checks
 {
 	my $obj=$package_name->new(0,0);
 	ok($obj->size==1,"0.0.0.1 - 0.0.0.1 is 1 ip");
@@ -40,6 +53,83 @@ our $package_name='Net::IPRangeCompare';
 	
 	ok(''.$obj eq '0.0.0.0 - 0.0.0.0',"Obj should stringify as an ip range");
 }
+
+## Misc parser checks ( makes life easy interface )
+{
+
+	# parser checks for a single ip
+	my $r=$package_name->new_from_ip("10");
+	ok($r eq '10.0.0.0 - 10.0.0.0',"parse ip check");
+	$r=$package_name->new_from_ip(undef);
+	ok(!$r," undef should retun undef");
+
+	$r=$package_name->new_from_range("10 - 10");
+	ok($r eq '10.0.0.0 - 10.0.0.0',"parse range notation check");
+	$r=$package_name->new_from_range("10 - ");
+	ok(!$r,"parse invalid range should fail");
+	$r=$package_name->new_from_range('10.0.0.0 - 10.0.0.0');
+	ok($r eq '10.0.0.0 - 10.0.0.0',"parse range notation check");
+
+	$r=$package_name->new_from_cidr('10.0/255.255.255.0');
+	ok($r,'parse a cidr in long hand');
+	ok($r->first_ip eq '10.0.0.0','validate the first ip');
+	ok($r->last_ip eq '10.0.0.255','validate the last ip');
+
+	$r=$package_name->new_from_cidr('0/0');
+	ok($r,'parse a cidr in short hand 0/0');
+	ok($r->first_ip eq '0.0.0.0','validate the first ip 0/0');
+	ok($r->last_ip eq '255.255.255.255','validate the last ip 0/0');
+
+	$r=$package_name->new_from_cidr('10/32');
+	ok($r,'parse a cidr in short hand 10/32');
+	ok($r->first_ip eq '10.0.0.0','validate the first ip 10/32');
+	ok($r->last_ip eq '10.0.0.0','validate the last ip 10/32');
+
+
+}
+## auto parse test ( makes life very easy )
+{
+	my $r=$package_name->parse_new_range('10');
+	ok($r,"should parse 10");
+	ok($r eq '10.0.0.0 - 10.0.0.0','validate 10 start and end');
+
+	$r=$package_name->parse_new_range('10/32');
+	ok($r,"should parse 10/32");
+	ok($r eq '10.0.0.0 - 10.0.0.0','validate 10/32 start and end');
+
+	$r=$package_name->parse_new_range('10/255');
+	ok($r,"should parse 10/255");
+	ok($r eq '10.0.0.0 - 10.255.255.255','validate 10/255 start and end');
+
+	$r=$package_name->parse_new_range('10 - 255');
+	ok($r,"should parse 10/255");
+	ok($r eq '10.0.0.0 - 255.0.0.0','validate 10 - 255 start and end');
+
+
+	$r=$package_name->parse_new_range($r);
+	ok($r,"should pass the ref through without error");
+	ok($r eq '10.0.0.0 - 255.0.0.0','validate ref 10 - 255 start and end');
+
+	$r=$package_name->parse_new_range([]);
+	ok(!$r,'should not parse an unblessed ref');
+
+	$r=$package_name->parse_new_range(10,32);
+	ok($r,"should handle the cidr list");
+	ok($r eq '10.0.0.0 - 32.0.0.0','validate list (10,32) start and end');
+
+}
+
+## Size Checks
+{
+	my $obj=$package_name->new(0,1);
+	ok($obj->size==2,"0.0.0.1 - 0.0.0.2 is 2 ips");
+	$obj=$package_name->new(0,0xffffffff);
+	ok($obj->size==(1 + 0xffffffff)
+		,"0.0.0.0 - 255.255.255.255  0/0 size");
+	$obj=$package_name->new(0,0);
+	ok($obj->size==1,"0.0.0.0 - 0.0.0.0 is 1 ip");
+}
+
 
 # sort testing
 {
@@ -346,15 +436,25 @@ our $package_name='Net::IPRangeCompare';
 
 ## get first cidr checks
 {
-	my $obj=$package_name->new(0,4);
-	my @set=$obj->get_first_cidr;
-	my $row=join(', ',@set);
-	ok($row eq '0.0.0.0 - 0.0.0.3, 0.0.0.0/30, 0.0.0.4 - 0.0.0.4',
-		'get next cidr start test');
-	@set=$set[2]->get_first_cidr;
-	$row=join(', ',@set);
-	ok($row eq '0.0.0.4 - 0.0.0.4, 0.0.0.4/32',
-		'get next cidr end test');
+	my $ok=0;
+	eval {
+		my $obj=$package_name->new(0,4);
+		my @set=$obj->get_first_cidr;
+		my $row=join(', ',@set);
+		ok($row eq 
+			'0.0.0.0 - 0.0.0.3, 0.0.0.0/30, 0.0.0.4 - 0.0.0.4',
+			'get next cidr start test');
+		$ok++;
+		@set=$set[2]->get_first_cidr;
+		$row=join(', ',@set);
+		ok($row eq '0.0.0.4 - 0.0.0.4, 0.0.0.4/32',
+			'get next cidr end test');
+		$ok++;
+	};
+	ok(!$@,'eval of get_first_cidr should not have failed');
+	SKIP: {
+		skip 'eval failed',(2 -$ok) unless !$@;
+	}
 }
 
 ## Get cidr notation lis ref;
@@ -368,77 +468,7 @@ our $package_name='Net::IPRangeCompare';
 		"cidr notation check 2");
 }
 
-## Misc internal parser checks
-{
 
-	# parser checks for a single ip
-	my $r=$package_name->new_from_ip("10");
-	ok($r eq '10.0.0.0 - 10.0.0.0',"parse ip check");
-	$r=$package_name->new_from_ip(undef);
-	ok(!$r," undef should retun undef");
-
-	$r=$package_name->new_from_range("10 - 10");
-	ok($r eq '10.0.0.0 - 10.0.0.0',"parse range notation check");
-	$r=$package_name->new_from_range("10 - ");
-	ok(!$r,"parse invalid range should fail");
-	$r=$package_name->new_from_range('10.0.0.0 - 10.0.0.0');
-	ok($r eq '10.0.0.0 - 10.0.0.0',"parse range notation check");
-
-	$r=$package_name->new_from_cidr('10.0/255.255.255.0');
-	ok($r,'parse a cidr in long hand');
-	ok($r->first_ip eq '10.0.0.0','validate the first ip');
-	ok($r->last_ip eq '10.0.0.255','validate the last ip');
-
-	$r=$package_name->new_from_cidr('0/0');
-	ok($r,'parse a cidr in short hand 0/0');
-	ok($r->first_ip eq '0.0.0.0','validate the first ip 0/0');
-	ok($r->last_ip eq '255.255.255.255','validate the last ip 0/0');
-
-	$r=$package_name->new_from_cidr('10/32');
-	ok($r,'parse a cidr in short hand 10/32');
-	ok($r->first_ip eq '10.0.0.0','validate the first ip 10/32');
-	ok($r->last_ip eq '10.0.0.0','validate the last ip 10/32');
-
-
-}
-## auto parse test
-{
-	my $r=$package_name->parse_new_range('10');
-	ok($r,"should parse 10");
-	ok($r eq '10.0.0.0 - 10.0.0.0','validate 10 start and end');
-
-	$r=$package_name->parse_new_range('10/32');
-	ok($r,"should parse 10/32");
-	ok($r eq '10.0.0.0 - 10.0.0.0','validate 10/32 start and end');
-
-	$r=$package_name->parse_new_range('10/255');
-	ok($r,"should parse 10/255");
-	ok($r eq '10.0.0.0 - 10.255.255.255','validate 10/255 start and end');
-
-	$r=$package_name->parse_new_range('10 - 255');
-	ok($r,"should parse 10/255");
-	ok($r eq '10.0.0.0 - 255.0.0.0','validate 10 - 255 start and end');
-
-
-	$r=$package_name->parse_new_range($r);
-	ok($r,"should pass the ref through without error");
-	ok($r eq '10.0.0.0 - 255.0.0.0','validate ref 10 - 255 start and end');
-
-	$r=$package_name->parse_new_range([]);
-	ok(!$r,'should not parse an unblessed ref');
-
-	$r=$package_name->parse_new_range(10,32);
-	ok($r,"should handle the cidr list");
-	ok($r eq '10.0.0.0 - 32.0.0.0','validate list (10,32) start and end');
-
-}
-
-{
-	ok('255.0.0.0' eq int_to_ip(cidr_to_int(8)),'test /8 conversion');
-	ok('255.255.255.255' eq int_to_ip(cidr_to_int(32))
-		,'test /32 conversion');
-	ok('0.0.0.0' eq int_to_ip(cidr_to_int(0)),'test /0 conversion');
-}
 
 {
 	my $r=$package_name->new(0,1);
